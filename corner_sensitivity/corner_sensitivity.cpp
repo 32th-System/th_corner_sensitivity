@@ -26,16 +26,16 @@ int __stdcall thcrap_plugin_init() {
 	wchar_t *end;
 	deadzone = wcstof(deadzone_str, &end);
 	corner_sensitivity = wcstof(corner_sensitivity_str, &end);
-	if (deadzone = 0.0) {
+	if (deadzone == 0.0) {
 		MessageBoxW(*((HWND*)0x5226C0), L"The deadzone value in corner_sensitivity.ini is invalid, using default value!", L"Error", MB_ICONERROR | MB_OK);
 		deadzone = 600.0;
 	}
-	if (corner_sensitivity = 0.0) {
+	if (corner_sensitivity == 0.0) {
 		MessageBoxW(*((HWND*)0x5226C0), L"The corner_sensitivity value in corner_sensitivity.ini is invalid, using default value!", L"Error", MB_ICONERROR | MB_OK);
 		corner_sensitivity = 30.0;
 	}
-	double min_sens = (90 - corner_sensitivity) / 2;
-	double max_sens = min_sens + corner_sensitivity;
+	min_sens = (90 - corner_sensitivity) / 2;
+	max_sens = min_sens + corner_sensitivity;
 	_freea(path);
 	return 0;
 }
