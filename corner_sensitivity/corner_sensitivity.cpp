@@ -6,7 +6,7 @@
 #include <math.h>
 #include <malloc.h>
 
-DWORD(__stdcall *__XInputGetState)(DWORD, XINPUT_STATE*) = nullptr;
+DWORD(__stdcall **__XInputGetState)(DWORD, XINPUT_STATE*) = (DWORD(__stdcall**)(DWORD, XINPUT_STATE*))0x49A278;
 
 float deadzone = 0;
 float corner_sensitivity = 0;
@@ -46,11 +46,7 @@ DWORD _XInputGetState(DWORD dwUserIndex, XINPUT_STATE *pState) {
 
 	bool corner_allowed = true;
 
-	if (!__XInputGetState) {
-		DWORD(__stdcall *__XInputGetState)(DWORD, XINPUT_STATE*) = (DWORD(__stdcall*)(DWORD, XINPUT_STATE*))GetProcAddress(GetModuleHandle(L"xinput1_3.dll"), "XInputGetState");
-	}
-
-	DWORD ret = __XInputGetState(dwUserIndex, pState);
+	DWORD ret = (*__XInputGetState)(dwUserIndex, pState);
 
 	
 	if (ret != ERROR_SUCCESS) {
