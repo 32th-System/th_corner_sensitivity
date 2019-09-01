@@ -13,42 +13,36 @@ float corner_sensitivity = 0;
 double min_sens = 0;
 double max_sens = 0;
 
+int __stdcall thcrap_plugin_init() {
+	__XInputGetState = (DWORD(__stdcall*)(DWORD, XINPUT_STATE*))GetProcAddress(GetModuleHandle(L"xinput1_3.dll"), "XInputGetState");
+	size_t path_len = (GetCurrentDirectoryW(0, NULL) + 24) * sizeof(wchar_t); // 22 = wcslen(L"corner_sensitivity.ini") + 2 (NULL terminator and \)
+	wchar_t *path = (wchar_t*)_alloca(path_len);
+	GetCurrentDirectoryW(path_len, path);
+	wcscpy(PathAddBackslashW(path), L"corner_sensitivity.ini");
+	wchar_t deadzone_str[6];
+	wchar_t corner_sensitivity_str[3];
+	GetPrivateProfileStringW(L"main", L"deadzone", L"600", deadzone_str, 6, path);
+	GetPrivateProfileStringW(L"main", L"corner_sensitivity", L"30", corner_sensitivity_str, 3, path);
+	wchar_t *end;
+	deadzone = wcstof(deadzone_str, &end);
+	corner_sensitivity = wcstof(corner_sensitivity_str, &end);
+	if (deadzone = 0.0) {
+		MessageBoxW(*((HWND*)0x5226C0), L"The deadzone value in corner_sensitivity.ini is invalid, using default value!", L"Error", MB_ICONERROR | MB_OK);
+		deadzone = 600.0;
+	}
+	if (corner_sensitivity = 0.0) {
+		MessageBoxW(*((HWND*)0x5226C0), L"The corner_sensitivity value in corner_sensitivity.ini is invalid, using default value!", L"Error", MB_ICONERROR | MB_OK);
+		corner_sensitivity = 30.0;
+	}
+	double min_sens = (90 - corner_sensitivity) / 2;
+	double max_sens = min_sens + corner_sensitivity;
+	_freea(path);
+	return 0;
+}
 
 DWORD _XInputGetState(DWORD dwUserIndex, XINPUT_STATE *pState) {
-	if (!corner_sensitivity | !deadzone) {
-		size_t path_len = (GetCurrentDirectoryW(0, NULL) + 24) * sizeof(wchar_t); // 22 = wcslen(L"corner_sensitivity.ini") + 2 (NULL terminator and \)
-		wchar_t *path = (wchar_t*)_alloca(path_len);
-		GetCurrentDirectoryW(path_len, path);
-		wcscpy(PathAddBackslashW(path), L"corner_sensitivity.ini");
-		wchar_t deadzone_str[6]; 
-		wchar_t corner_sensitivity_str[3];
-		GetPrivateProfileStringW(L"main", L"deadzone", L"600", deadzone_str, 6, path);
-		GetPrivateProfileStringW(L"main", L"corner_sensitivity", L"30", corner_sensitivity_str, 3, path);
-		wchar_t *end;
-		deadzone = wcstof(deadzone_str, &end);
-		corner_sensitivity = wcstof(corner_sensitivity_str, &end);
-		if (deadzone = 0.0) {
-			MessageBoxW(*((HWND*)0x5226C0), L"The deadzone value in corner_sensitivity.ini is invalid, using default value!", L"Error", MB_ICONERROR | MB_OK);
-			deadzone = 600.0;
-		}
-		if (corner_sensitivity = 0.0) {
-			MessageBoxW(*((HWND*)0x5226C0), L"The corner_sensitivity value in corner_sensitivity.ini is invalid, using default value!", L"Error", MB_ICONERROR | MB_OK);
-			corner_sensitivity = 30.0;
-		}
-		_freea(path);
-	}
-
-	if (!min_sens | !max_sens) {
-		double min_sens = (90 - corner_sensitivity) / 2;
-		double max_sens = min_sens + corner_sensitivity;
-	}
-	
 
 	bool corner_allowed = true;
-
-	if (!__XInputGetState) {
-		DWORD(__stdcall *__XInputGetState)(DWORD, XINPUT_STATE*) = (DWORD(__stdcall*)(DWORD, XINPUT_STATE*))GetProcAddress(GetModuleHandle(L"xinput1_3.dll"), "XInputGetState");
-	}
 
 	DWORD ret = __XInputGetState(dwUserIndex, pState);
 
