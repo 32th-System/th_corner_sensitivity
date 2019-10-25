@@ -36,7 +36,7 @@ DWORD __stdcall _XInputGetState(DWORD dwUserIndex, XINPUT_STATE *pState) {
 	SHORT posY = pState->Gamepad.sThumbLY;
 
 	if (0 > posX) {
-		if (posX = -32768) {
+		if (posX == -32768) {
 			posX = 32767;
 		}
 		else {
@@ -44,7 +44,7 @@ DWORD __stdcall _XInputGetState(DWORD dwUserIndex, XINPUT_STATE *pState) {
 		}
 	}
 	if (0 > posY) {
-		if (posY = -32768) {
+		if (posY == -32768) {
 			posY = 32767;
 		}
 		else {
