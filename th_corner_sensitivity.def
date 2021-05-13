@@ -1,3 +1,2 @@
 EXPORTS
-	_XInputGetState
 	thcrap_plugin_init
