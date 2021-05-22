@@ -1,4 +1,4 @@
-#define PI 3.141592653589793115997963468544185161590576171875
+#define PI 3.1415926535897931159979634685441
 
 #include <thcrap.h>
 #include <Xinput.h>
@@ -14,54 +14,52 @@ L"deadzone = 10000\n"
 typedef DWORD(__stdcall XInputGetState_t)(DWORD, XINPUT_STATE*);
 XInputGetState_t *orig_XInputGetState = nullptr;
 
-double deadzone = 0;
-double corner_sensitivity = 0;
-double min_sens = 0;
-double max_sens = 0;
+int deadzone = 0;
+float min_sens = 0;
+float max_sens = 0;
+
+#define FLOAT_AS_INT(a) (*(int*)&a)
 
 DWORD __stdcall detoured_XInputGetState(DWORD dwUserIndex, XINPUT_STATE *pState) {
 	bool corner_allowed = true;
 	DWORD ret = orig_XInputGetState(dwUserIndex, pState);
 
-
 	if (ret != ERROR_SUCCESS) {
 		return ret;
 	}
 
-	double push = sqrt(pState->Gamepad.sThumbLX*pState->Gamepad.sThumbLX + pState->Gamepad.sThumbLY*pState->Gamepad.sThumbLY);
+	SHORT posX = pState->Gamepad.sThumbLX;
+	SHORT posY = pState->Gamepad.sThumbLY;
 
+	// Comparing squared values is more accurate and faster
+	// especially because all values stay ints rather than
+	// being converted to floats or doubles
+	int push = posX * posX + posY * posY;
 	if (push < deadzone) {
 		pState->Gamepad.sThumbLX = 0;
 		pState->Gamepad.sThumbLY = 0;
 		return ERROR_SUCCESS;
 	}
 
-	SHORT posX = pState->Gamepad.sThumbLX;
-	SHORT posY = pState->Gamepad.sThumbLY;
+	if (posX == -32768)	posX = 32767;
+	if (posX < 0) posX = -posX;
 
-	if (0 > posX) {
-		if (posX == -32768) {
-			posX = 32767;
-		}
-		else {
-			posX = -posX;
-		}
+	if (posY == -32768) posY = 32767;
+	if (posY < 0) posY = -posY;
+
+	float angle = atan2(posY, posX);
+
+	if (!(((angle - max_sens) < 0) && ((angle - min_sens) > 0))) {
+		if (posX > posY)
+			pState->Gamepad.sThumbLY = 0;
+		else if (posX < posY)
+			pState->Gamepad.sThumbLX = 0;
+	} else {
+		if (posX > posY)
+			pState->Gamepad.sThumbLY > 0 ? pState->Gamepad.sThumbLY = posX : pState->Gamepad.sThumbLY = -posX;
+		else if (posX < posY)
+			pState->Gamepad.sThumbLX > 0 ? pState->Gamepad.sThumbLX = posY : pState->Gamepad.sThumbLX = -posY;
 	}
-	if (0 > posY) {
-		if (posY == -32768) {
-			posY = 32767;
-		}
-		else {
-			posY = -posY;
-		}
-	}
-
-	double angle = atan2(posY, posX) * (180/PI);
-
-	if (!((angle - max_sens)*(angle - min_sens) <= 0)) {
-		posX > posY ? pState->Gamepad.sThumbLY = 0 : pState->Gamepad.sThumbLX = 0;
-	}
-
 	return ERROR_SUCCESS;
 }
 
@@ -96,10 +94,10 @@ int __stdcall thcrap_plugin_init() {
 		CloseHandle(hIni);
 	}
 
-	wchar_t corner_sensitivity_str[3];
-	GetPrivateProfileStringW(L"main", L"corner_sensitivity", L"50", corner_sensitivity_str, 3, path);
+	wchar_t corner_sensitivity_str[8];
+	GetPrivateProfileStringW(L"main", L"corner_sensitivity", L"50", corner_sensitivity_str, 8, path);
 	wchar_t *end;
-	corner_sensitivity = wcstod(corner_sensitivity_str, &end);
+	float corner_sensitivity = wcstof(corner_sensitivity_str, &end);
 
 	if (corner_sensitivity == 0.0) {
 		log_mbox("th_corner_sensitivity error", MB_ICONERROR | MB_OK, "The corner_sensitivity value in corner_sensitivity.ini is invalid, using default value!");
@@ -108,7 +106,16 @@ int __stdcall thcrap_plugin_init() {
 
 	min_sens = (90 - corner_sensitivity) / 2;
 	max_sens = min_sens + corner_sensitivity;
+
+	// detoured_XInputGetState won't have to convert
+	// anything to degrees if those are already radian
+	min_sens *= PI / 180;
+	max_sens *= PI / 180;
+
 	deadzone = GetPrivateProfileIntW(L"main", L"deadzone", 10000, path);
+
+	// detoured_XInputGetState needs to square this number anyways
+	deadzone *= deadzone;
 
 	VLA_FREE(path);
 
