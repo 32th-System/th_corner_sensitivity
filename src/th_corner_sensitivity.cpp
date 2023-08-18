@@ -64,12 +64,21 @@ DWORD __stdcall detoured_XInputGetState(DWORD dwUserIndex, XINPUT_STATE *pState)
 }
 
 int __stdcall thcrap_plugin_init() {
-	HMODULE hXInput = GetModuleHandleW(L"xinput1_3.dll");
-	if (!hXInput) {
+	HMODULE hXInput;
+	const char* xinput_name;
+
+	if (hXInput = GetModuleHandleW(L"xinput1_4.dll")) {
+		xinput_name = "xinput1_4.dll";
+	}
+	else if (hXInput = GetModuleHandleW(L"xinput1_3.dll")) {;
+		xinput_name = "xinput1_3.dll";
+	}
+	else {
 		return 1;
 	}
+
 	orig_XInputGetState = (XInputGetState_t*)GetProcAddress(hXInput, "XInputGetState");
-	int ret = detour_chain("xinput1_3.dll", 1,
+	int ret = detour_chain(xinput_name, 1,
 		"XInputGetState", detoured_XInputGetState, &orig_XInputGetState,
 		NULL
 	);
